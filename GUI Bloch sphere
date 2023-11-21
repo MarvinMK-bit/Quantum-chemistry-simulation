@@ -1,0 +1,61 @@
+# Define the Hamiltonian matrix
+hamiltonian_matrix = [
+    [-12.32108595, -3.18732952, 0, 0, 0],
+    [-3.18732952, -3.41246493, 0, 0, 0],
+    [0, 0, -2.61755896, 0, 0],
+    [0, 0, 0, -2.61755896, 0],
+    [0, 0, 0, 0, -2.61755896]
+]
+
+num_qubits = len(hamiltonian_matrix)
+
+def quantum_walk_simulation(error_prob, num_steps):
+    backend = Aer.get_backend('qasm_simulator')
+
+    # Create a quantum circuit
+    qc = QuantumCircuit(num_qubits)
+
+    for step in range(num_steps):
+        for i in range(num_qubits):
+            qc.rx(hamiltonian_matrix[i][i], i)
+            for j in range(i + 1, num_qubits):
+                if hamiltonian_matrix[i][j] != 0:
+                    qc.cx(i, j)
+
+    qc.measure_all()
+
+    # Create a depolarizing error model
+    noise_model = NoiseModel()
+    for i in range(num_qubits):
+        noise_model.add_all_qubit_quantum_error(depolarizing_error(error_prob, 1), ['rx'], [i])
+        for j in range(i + 1, num_qubits):
+            if hamiltonian_matrix[i][j] != 0:
+                noise_model.add_all_qubit_quantum_error(depolarizing_error(error_prob, 2), ['cx'], [i, j])
+
+
+
+    # Assemble the transpiled circuit
+    qobj = assemble(transpiled_circuit)
+
+    # Execute the circuit with noise
+    result = execute(qc, backend, shots=1000, noise_model=noise_model).result()
+
+    # Get the counts from the result
+    counts = result.get_counts()
+
+    return counts
+
+# Streamlit app
+st.title("Quantum Walk Visualization")
+
+# Slider for error probability
+error_prob = st.slider("Error Probability", 0.0, 1.0, 0.09, step=0.01)
+
+# Slider for the number of steps
+num_steps = st.slider("Number of Steps", 1, 10, 5)
+
+# Run quantum walk simulation
+counts = quantum_walk_simulation(error_prob, num_steps)
+
+# Plot the histogram
+st.plotly_chart(plot_histogram(counts).figure)
