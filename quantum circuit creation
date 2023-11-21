@@ -1,0 +1,171 @@
+Z_boron = 5  # Atomic number of boron
+alpha = 1.0  # Slater-type orbital parameter
+
+# Function to calculate the radial part of a Slater-type orbital
+def slater_orbital(r, n, alpha):
+    return np.sqrt((2 * alpha / np.pi) ** 3) * r ** (n - 1) * np.exp(-alpha * r)
+
+# Function to calculate kinetic energy
+def kinetic_energy(r, n, alpha):
+    return -0.5 * slater_orbital(r, n, alpha) * (alpha ** 2 * r ** 2 - 2 * alpha * n * r + 2 * n * (n - 1))
+
+# Function to calculate potential energy (nuclear-electron attraction)
+def potential_energy_nuclear(r, Z):
+    return -Z / r
+
+# Function to calculate total energy (kinetic + potential)
+def total_energy(r, n, alpha, Z):
+    return kinetic_energy(r, n, alpha) + potential_energy_nuclear(r, Z)
+
+# Sample calculation for boron's 1s orbital
+r_values = np.linspace(0.001, 10, 100,1000)
+energy_values = total_energy(r_values, 1, alpha, Z_boron)
+
+# Plot the energy curve
+import matplotlib.pyplot as plt
+
+plt.plot(r_values, energy_values, label='Total Energy')
+plt.xlabel('Radial Distance (a.u.)')
+plt.ylabel('Energy (a.u.)')
+plt.legend()
+plt.show()
+print(energy_values)
+
+
+
+# more bit advance approach using openfermionpyscf
+from pyscf import gto, scf
+# here we understand boron has 5 electrons and 2 are alpha and 2 beta and one spin multiplicity
+#2s+1 rule
+#2*1=2
+#set the basis sets for boron molecule
+
+# Set up the boron atom using PySCF
+boron_molecule = gto.M(atom='B', basis='sto-3g', spin=1, charge=0)
+
+# Compute the energy using Hartree-Fock method
+mf = scf.RHF(boron_molecule)
+energy = mf.kernel()
+
+# Get the Hamiltonian matrix
+H = mf.get_hcore()
+
+print("Hamiltonian Matrix for Boron:")
+print(H)
+
+
+
+# this is a low level approach for circuit creation for boron
+#we need to start thinking on creating proper quantum simulation
+#___for now let break the problem into parts
+#1.electrons will go in as qubits
+#2.output are eigenvalues of electronic states
+#3.wires wil be the orbitals
+#4.we will obtain expected values as probable state values
+
+from qiskit import QuantumCircuit, Aer, transpile
+from qiskit.visualization import plot_histogram
+
+# Define the quantum circuit
+n_qubits = 5  # Number of qubits/orbitals
+circuit = QuantumCircuit(n_qubits)
+
+for qubit in range(n_qubits):
+    circuit.h(qubit)
+for i in range(n_qubits - 1):
+    circuit.ry(-1.0, i)
+    circuit.cx(i, i + 1)
+
+# Execute the circuit and visualize the results
+backend = Aer.get_backend('statevector_simulator')
+transpiled_circuit = transpile(circuit, backend)
+result = backend.run(transpiled_circuit).result()
+statevector = result.get_statevector()
+
+print("Statevector:")
+print(statevector)
+
+# Plot the circuit
+circuit.draw(plot_barriers=False, fold=-1)
+
+
+# Define the number of electrons and orbitals
+electrons = 5
+orbitals = 3
+
+# Create a PennyLane quantum device with the correct number of wires
+dev = qml.device('default.qubit', wires=orbitals)
+
+@qml.qnode(dev)
+def quantum_circuit(angles):
+    # The active space should be specified using `qml.qchem.active_space` function
+    core, active = qml.qchem.active_space(electrons, orbitals, active_electrons=2, active_orbitals=2)
+
+    qml.RX(angles[0], wires=0)
+    qml.RX(angles[1], wires=1)
+    qml.RZ(angles[2], wires=2)  # Correct wire index
+    qml.CY(wires=[0, 2])
+    qml.Hadamard(wires=1)
+    qml.CNOT(wires=[0, 1])
+    qml.Hadamard(wires=2)
+
+    # Return the expectation values for PauliZ operators on each wire
+    return [qml.expval(qml.PauliZ(i)) for i in range(orbitals)]
+
+# Define the angles
+angles = [0.1, 0.3, 0.4]
+
+# Draw the quantum circuit without passing angles
+qml.draw(quantum_circuit)(angles)
+
+# Execute the quantum circuit with the provided angles
+result = quantum_circuit(angles)
+
+# Print the core and active spaces
+print("Core orbitals:", result[0])
+print("Active orbitals:", result[1:])
+
+# Draw the quantum circuit with angles
+qml.draw_mpl(quantum_circuit, decimals=2, style="default")(angles)
+plt.show()
+
+
+# circuit based on hamiltonian matrix
+#we want generated the outputs of the circuit
+from qiskit import QuantumCircuit, Aer, transpile, assemble
+from qiskit.visualization import plot_histogram
+
+# Define the Hamiltonian matrix
+hamiltonian_matrix = [
+    [-12.32108595, -3.18732952, 0, 0, 0],
+    [-3.18732952, -3.41246493, 0, 0, 0],
+    [0, 0, -2.61755896, 0, 0],
+    [0, 0, 0, -2.61755896, 0],
+    [0, 0, 0, 0, -2.61755896]
+]
+
+# Define the number of qubits
+num_qubits = len(hamiltonian_matrix)
+
+#  we Create a quantum circuit
+qc = QuantumCircuit(num_qubits)
+
+for i in range(num_qubits):
+    qc.rx(hamiltonian_matrix[i][i], i)
+    for j in range(i + 1, num_qubits):
+        if hamiltonian_matrix[i][j] != 0:
+            qc.cx(i, j)
+
+# Simulate the quantum circuit
+backend = Aer.get_backend('statevector_simulator')
+transpiled_circuit = transpile(qc, backend)
+result = backend.run(transpiled_circuit).result()
+statevector = result.get_statevector()
+
+# Print the statevector
+print("Statevector:")
+print(statevector)
+
+# Draw the quantum circuit
+qc.draw()
+
