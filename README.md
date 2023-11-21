@@ -1,2 +1,3 @@
 # Quantum-chemistry-simulation
-Define the active space for boron (five electrons and one unoccupied orbital). Construct the Hamiltonian that represents the quantum system. This involves setting up the terms related to the kinetic and potential energy of electrons.
+we are working on quantum chemistry simulation that is based on circuit based and measurement based quantum computing,we employ libaries such pennylane,qiskit and among others to figure out how to solve problems of atomic systems and proper of understanding of electronic structures
+
