@@ -1,0 +1,136 @@
+# Function to create a quantum circuit with given angles
+def create_quantum_circuit(angles):
+    num_qubits = len(angles)
+    qc = QuantumCircuit(num_qubits)
+
+    # Apply rotations based on the angles
+    for i, angle in enumerate(angles):
+        qc.rx(angle, i)
+
+    # Add measurement gates to all qubits
+    qc.measure_all()
+
+    return qc
+
+# Function to simulate the quantum circuit and return binary outcome
+def simulate_quantum_circuit(quantum_circuit):
+    backend = Aer.get_backend('qasm_simulator')
+    result = execute(quantum_circuit, backend, shots=1).result()
+    counts = result.get_counts()
+    outcome = int(list(counts.keys())[0], 2)  # Convert binary outcome to decimal
+    return outcome
+
+# Generate training data
+num_samples = 1000
+num_qubits = 5
+X = np.random.rand(num_samples, num_qubits)  # Random angles as features
+y = np.array([simulate_quantum_circuit(create_quantum_circuit(angles)) for angles in X])
+
+# Split the data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=42)
+
+# Train a neural network classifier
+model = MLPClassifier(hidden_layer_sizes=(10,), max_iter=1000, random_state=42)
+model.fit(X_train, y_train)
+
+# Make predictions on the test set
+y_pred = model.predict(X_test)
+
+# Evaluate the model's accuracy
+accuracy = accuracy_score(y_test, y_pred)
+print("Model Accuracy:", accuracy)
+
+
+cm=confusion_matrix(y_test, y_pred)
+dis=ConfusionMatrixDisplay(confusion_matrix=cm)
+dis.plot()
+score = metrics.f1_score(y_test, y_pred,average="micro")
+precision=metrics.precision_score(y_test,y_pred,average="micro")
+print(precision)
+print(score)
+
+
+model = MLPClassifier(hidden_layer_sizes=(100,), max_iter=1000, random_state=42)
+
+# Extract the architecture information
+layer_sizes = [X_train.shape[1]] + list(model.hidden_layer_sizes) + [1]
+
+# Plotting the neural network
+fig, ax = plt.subplots(figsize=(10, 8))
+
+for i in range(1, len(layer_sizes)):
+    ax.plot([i-1, i], [1, 1], marker='o', markersize=10, color='green')
+
+for i in range(len(layer_sizes)-1):
+    for j in range(layer_sizes[i]):
+        for k in range(layer_sizes[i+1]):
+            ax.plot([i, i+1], [j, k], linestyle='-', color='green')
+
+ax.set_title('Neural Network Architecture')
+ax.set_xlabel('Layer')
+ax.set_ylabel('Node')
+
+plt.show()
+
+
+
+qc = QNNCircuit(num_qubits=5)
+qc.draw()
+
+estimator_qnn = EstimatorQNN(circuit=qc)
+
+estimator_qnn.forward(X[0, :], algorithm_globals.random.random(estimator_qnn.num_weights))
+
+def callback_graph(weights, obj_func_eval):
+    clear_output(wait=True)
+    objective_func_vals.append(obj_func_eval)
+    plt.title("Objective function value against iteration")
+    plt.xlabel("Iteration")
+    plt.ylabel("Objective function value")
+    plt.plot(range(len(objective_func_vals)), objective_func_vals)
+    plt.show()
+
+estimator_classifier = NeuralNetworkClassifier(
+    estimator_qnn, optimizer=COBYLA(maxiter=10), callback=callback_graph
+)
+
+
+
+
+num_samples = 1000
+num_qubits = 5
+X = np.random.rand(num_samples, num_qubits)  # Random angles as features
+y = np.array([simulate_quantum_circuit(create_quantum_circuit(angles)) for angles in X])
+y_train_binary = (y_train > 0.5).astype(int)
+y_test_binary = (y_test > 0.5).astype(int)
+print(X)
+# Split the data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=42)
+
+
+objective_func_vals = []
+plt.rcParams["figure.figsize"] = (12, 6)
+
+# fit classifier to data
+estimator_classifier.fit(X_train, y_train_binary)
+
+# Get predictions
+y_pred = estimator_classifier.predict(X_test)
+#print(y_pred)
+
+
+estimator_classifier.weights
+
+predict = estimator_classifier.predict(X_train)
+
+# plot results
+# red == wrongly classified
+for x, y_target, y_p in zip(X_train, y_train_binary, y_pred):
+    if y_target == 1:
+        plt.plot(x[0], x[1], "bo")
+    else:
+        plt.plot(x[0], x[1], "go")
+    if y_target != y_p:
+        plt.scatter(x[0], x[1], s=100, facecolors="none", edgecolors="r", linewidths=2)
+plt.plot([-1, 1], [1, -1], "--", color="black")
+plt.show()
