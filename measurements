@@ -1,0 +1,202 @@
+# Define the Hamiltonian matrix
+hamiltonian_matrix = [
+    [-12.32108595, -3.18732952, 0, 0, 0],
+    [-3.18732952, -3.41246493, 0, 0, 0],
+    [0, 0, -2.61755896, 0, 0],
+    [0, 0, 0, -2.61755896, 0],
+    [0, 0, 0, 0, -2.61755896]
+]
+
+num_qubits = len(hamiltonian_matrix)
+
+qc = QuantumCircuit(num_qubits)
+
+for i in range(num_qubits):
+    qc.rx(hamiltonian_matrix[i][i], i)
+    for j in range(i + 1, num_qubits):
+        if hamiltonian_matrix[i][j] != 0:
+            qc.cx(i, j)
+
+qc.measure_all()
+
+# Simulate the quantum circuit with noise
+backend = Aer.get_backend('qasm_simulator')
+
+# depolarizing error model
+error_prob = 0.09
+noise_model = NoiseModel()
+for i in range(num_qubits):
+    noise_model.add_all_qubit_quantum_error(depolarizing_error(error_prob, 1), ['rx'], [i])
+    for j in range(i + 1, num_qubits):
+        if hamiltonian_matrix[i][j] != 0:
+            noise_model.add_all_qubit_quantum_error(depolarizing_error(error_prob, 2), ['cx'], [i, j])
+
+# Transpile the circuit with the noise model
+#transpiled_circuit = transpile(qc, backend, noise_model=noise_model)
+
+# Assemble the transpiled circuit
+qobj = assemble(transpiled_circuit)
+
+# Execute the circuit with noise
+result = execute(qc, backend, shots=1000, noise_model=noise_model).result()
+
+# Get the counts from the result
+counts = result.get_counts()
+
+
+# Create a DataFrame for the counts
+df1 = pd.DataFrame(list(counts.items()), columns=['State', 'Counts'])
+df1.set_index('State', inplace=True)
+df1_sorted = df1.sort_values(by='Counts', ascending=False)
+print(df1_sorted.head())
+
+# Plot the histogram
+plot_histogram(counts)
+
+
+from qiskit import QuantumCircuit, Aer, transpile, assemble, execute
+from qiskit.visualization import plot_histogram
+
+# Define the Hamiltonian matrix
+hamiltonian_matrix = [
+    [-12.32108595, -3.18732952, 0, 0, 0],
+    [-3.18732952, -3.41246493, 0, 0, 0],
+    [0, 0, -2.61755896, 0, 0],
+    [0, 0, 0, -2.61755896, 0],
+    [0, 0, 0, 0, -2.61755896]
+]
+
+# Define the number of qubits
+num_qubits = len(hamiltonian_matrix)
+
+# Create a quantum circuit
+qc = QuantumCircuit(num_qubits)
+
+#  we Apply rotations and CNOT gates based on the Hamiltonian matrix
+for i in range(num_qubits):
+    qc.rx(hamiltonian_matrix[i][i], i)
+    for j in range(i + 1, num_qubits):
+        if hamiltonian_matrix[i][j] != 0:
+            qc.cx(i, j)
+
+# Add measurement gates to all qubits
+qc.measure_all()
+
+# Simulate the quantum circuit
+backend = Aer.get_backend('qasm_simulator')
+transpiled_circuit = transpile(qc, backend)
+qobj = assemble(transpiled_circuit)
+result = execute(qc, backend, shots=1000).result()
+
+# Get the counts from the result
+counts = result.get_counts()
+
+# Create a DataFrame for the counts
+df2 = pd.DataFrame(list(counts.items()), columns=['State', 'Counts'])
+df2.set_index('State', inplace=True)
+df2_sorted = df2.sort_values(by='Counts', ascending=False)
+print(df2_sorted.head())
+
+plot_histogram(counts)
+
+
+# Define the Hamiltonian matrix
+hamiltonian_matrix = [
+    [-12.32108595, -3.18732952, 0, 0, 0],
+    [-3.18732952, -3.41246493, 0, 0, 0],
+    [0, 0, -2.61755896, 0, 0],
+    [0, 0, 0, -2.61755896, 0],
+    [0, 0, 0, 0, -2.61755896]
+]
+
+num_qubits = len(hamiltonian_matrix)
+
+# Create a quantum circuit
+qc = QuantumCircuit(num_qubits)
+
+for i in range(num_qubits):
+    qc.rx(hamiltonian_matrix[i][i], i)
+    for j in range(i + 1, num_qubits):
+        if hamiltonian_matrix[i][j] != 0:
+            qc.cx(i, j)
+
+# Add measurement gates to all qubits
+qc.measure_all()
+
+# Simulate the quantum circuit
+backend = Aer.get_backend('qasm_simulator')
+
+# Print the quantum circuit
+print(qc)
+
+# Check if the circuit is transpilable
+transpiled_circuit = transpile(qc, backend)
+print("Circuit is transpilable.")
+
+
+# Execute the quantum circuit
+result = execute(qc, backend, shots=1024).result()
+
+# Get the counts from the result
+counts = result.get_counts()
+
+# Print the counts
+print("Counts:", counts)
+
+# Plot the histogram
+plot_histogram(counts)
+
+
+
+# Function to create a quantum circuit
+def create_quantum_circuit(angles):
+    num_qubits = len(angles)
+    qc = QuantumCircuit(num_qubits)
+
+    # Apply rotations based on the angles
+    for i, angle in enumerate(angles):
+        qc.rx(angle, i)
+
+    # Add measurement gates to all qubits
+    qc.measure_all()
+
+    return qc
+
+# Function to simulate the quantum circuit and collect data
+def simulate_quantum_circuit(quantum_circuit, shots=1024):
+    backend = Aer.get_backend('qasm_simulator')
+    transpiled_circuit = transpile(quantum_circuit, backend)
+    qobj = assemble(transpiled_circuit)
+    result = execute(quantum_circuit, backend, shots=shots).result()
+    counts = result.get_counts()
+    return counts
+
+# Define the number of qubits
+num_qubits = 5
+
+# Define initial angles (replace with your desired angles)
+initial_angles = np.random.rand(num_qubits)
+
+# Create the quantum circuit with initial angles
+initial_circuit = create_quantum_circuit(initial_angles)
+
+# Simulate the quantum circuit and collect data
+initial_counts = simulate_quantum_circuit(initial_circuit)
+
+# Print initial angles and measurement outcomes
+print("Initial Angles:", initial_angles)
+print("Measurement Outcomes:", initial_counts)
+
+#rotate qubit 0 by 0.1 radians
+modified_angles = initial_angles.copy()
+modified_angles[0] += 1.1
+
+# Create the modified quantum circuit
+modified_circuit = create_quantum_circuit(modified_angles)
+
+# Simulate the modified quantum circuit and collect data
+modified_counts = simulate_quantum_circuit(modified_circuit)
+
+# Print modified angles and measurement outcomes
+print("Modified Angles:", modified_angles)
+print("Measurement Outcomes (Modified):", modified_counts)
